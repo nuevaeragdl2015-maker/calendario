@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generador de calendario | Francisco Ávalos Fotografía</title>
+<style>
+:root{--gold:#b08a50;--ink:#29251f;--muted:#746f68;--paper:#f7f4ef;--line:#e8e0d5}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:22px}
+.wrap{max-width:960px;margin:auto}header{text-align:center;margin:12px 0 26px}header .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700}
+h1,h2,h3{font-family:Georgia,serif;font-weight:500}h1{font-size:clamp(28px,5vw,40px);margin:8px 0}header p,.muted{color:var(--muted);line-height:1.5}
+.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:start}.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 10px 28px #281e0f0a}
+h2{font-size:23px;margin:0 0 18px}.field{margin-bottom:15px}label{display:block;font-size:13px;font-weight:650;margin-bottom:7px}
+input{width:100%;min-height:44px;padding:10px 12px;border:1px solid #d9d2c8;border-radius:8px;font:inherit;color:var(--ink);background:#fff}
+input:focus{outline:2px solid #d8c29f;border-color:var(--gold)}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.colorrow{display:flex;gap:12px;align-items:center}input[type=color]{width:58px;height:42px;padding:3px}
+button{border:0;border-radius:9px;background:var(--gold);color:#fff;padding:14px 18px;font-weight:700;cursor:pointer;font-size:14px}
+.primary{width:100%;margin-top:5px}.preview{border-radius:13px;padding:28px 20px;text-align:center;background:#fbf9f6;border:1px solid var(--line)}
+.preview .symbol{font-size:34px;margin-bottom:12px}.preview h3{font-size:27px;margin:0 0 10px}.preview p{color:var(--muted);line-height:1.5}
+.preview button{width:100%;margin-top:12px}.note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:14px}
+#result{display:none;margin-top:18px;padding:14px;background:#faf8f5;border:1px solid var(--line);border-radius:10px}
+#generatedUrl{width:100%;margin:8px 0;min-height:76px;resize:vertical;font:12px ui-monospace,monospace}
+.actions{display:flex;gap:9px}.actions button{flex:1}.error{color:#a3332b;font-size:13px;min-height:18px}
+@media(max-width:720px){body{padding:14px}.layout{grid-template-columns:1fr}.panel{padding:18px}}
+.guest{max-width:520px;margin:7vh auto}.guest .panel{text-align:center;padding:34px 25px}.guest h1{font-size:34px}
+.guest .details{background:#faf8f5;padding:15px;border-radius:10px;margin:20px 0}.guest button{width:100%;font-size:15px}
+</style></head>
+<body>
+<div class="wrap" id="editor">
+<header><div class="eyebrow">Francisco Ávalos Fotografía</div><h1>Generador de enlaces de calendario</h1>
+<p>Configura cada evento y crea un enlace para colocarlo en el botón de tu invitación de Canva.</p></header>
+<div class="layout">
+<section class="panel"><h2>Personaliza tu evento</h2>
+<div class="field"><label for="eventName">Nombre del evento</label><input id="eventName" value="Mis XV años de Samantha" maxlength="100"></div>
+<div class="field"><label for="eventDate">Fecha del evento</label><input id="eventDate" type="date" value="2026-12-05"></div>
+<div class="two">
+<div class="field"><label for="startTime">Hora de inicio</label><input id="startTime" type="time" value="18:00"></div>
+<div class="field"><label for="endTime">Hora de finalización</label><input id="endTime" type="time" value="23:00"></div></div>
+<div class="field"><label for="buttonText">Texto del botón</label><input id="buttonText" value="AGREGAR A MI CALENDARIO" maxlength="50"></div>
+<div class="field"><label for="introText">Mensaje para los invitados</label><input id="introText" value="Agrega este día especial a tu calendario para que no lo olvides." maxlength="140"></div>
+<div class="field"><label>Color del botón</label><div class="colorrow"><input id="buttonColor" type="color" value="#b08a50"><span class="muted" id="colorValue">#b08a50</span></div></div>
+<button class="primary" id="makeLink">GENERAR ENLACE DEL EVENTO</button><div class="error" id="error" role="alert"></div>
+<div id="result"><strong>Tu enlace está listo</strong><p class="note">Copia el enlace y pégalo en Canva: selecciona el botón, pulsa el icono de enlace y pega la dirección.</p>
+<textarea id="generatedUrl" readonly></textarea><div class="actions"><button id="copyLink" type="button">COPIAR ENLACE</button><button id="testLink" type="button">PROBAR ENLACE</button></div></div>
+<p class="note">Publica primero este archivo en GitHub y Vercel. Después podrás generar enlaces personalizados desde tu dirección publicada.</p>
+</section>
+<aside class="panel"><h2>Vista previa</h2><div class="preview"><div class="symbol">♡</div><h3 id="previewName">Mis XV años de Samantha</h3>
+<p id="previewIntro">Agrega este día especial a tu calendario para que no lo olvides.</p><p id="previewDate">5 de diciembre de 2026</p>
+<button id="previewButton" type="button">AGREGAR A MI CALENDARIO</button></div><p class="note">Revisa el texto y el color antes de generar el enlace.</p></aside>
+</div></div>
+<script>
+const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
+const guest=params.has("name")&&params.has("date")&&params.has("start")&&params.has("end");
+function prettyDate(iso){const [y,m,d]=iso.split("-").map(Number);return new Intl.DateTimeFormat("es-MX",{day:"numeric",month:"long",year:"numeric"}).format(new Date(y,m-1,d))}
+function updatePreview(){$("previewName").textContent=$("eventName").value||"Nombre del evento";$("previewIntro").textContent=$("introText").value;$("previewButton").textContent=$("buttonText").value||"AGREGAR A MI CALENDARIO";$("previewButton").style.background=$("buttonColor").value;$("colorValue").textContent=$("buttonColor").value;$("previewDate").textContent=$("eventDate").value?prettyDate($("eventDate").value):"Selecciona una fecha"}
+["eventName","eventDate","startTime","endTime","buttonText","introText","buttonColor"].forEach(id=>$(id).addEventListener("input",updatePreview));updatePreview();
+function showGuest(){
+const name=params.get("name")||"Evento",date=params.get("date")||"",start=params.get("start")||"",end=params.get("end")||"",button=params.get("button")||"AGREGAR A MI CALENDARIO",intro=params.get("intro")||"Agrega este día especial a tu calendario.",color=/^#[0-9a-f]{6}$/i.test(params.get("color")||"")?params.get("color"):"#b08a50";
+const timeOK=t=>/^\d{2}:\d{2}$/.test(t)&&+t.slice(0,2)<24&&+t.slice(3)<60;
+if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!timeOK(start)||!timeOK(end)){document.body.innerHTML="<main class='guest'><section class='panel'><h1>Enlace incompleto</h1><p>Genera nuevamente el enlace desde la página de configuración.</p></section></main>";return}
+$("editor").innerHTML=`<main class="guest"><section class="panel"><div style="font-size:38px">♡</div><div class="eyebrow">Francisco Ávalos Fotografía</div><h1>¡Te esperamos!</h1><p id="gIntro"></p><div class="details"><strong id="gName"></strong><span id="gDate"></span><br><span id="gTime"></span></div><button id="download"> </button><p class="note" id="gNote">Al continuar, se descargará un archivo de calendario. Ábrelo y elige agregar el evento.</p></section></main>`;
+$("gIntro").textContent=intro;$("gName").textContent=name;$("gDate").textContent=prettyDate(date);$("gTime").textContent=start+" a "+end;$("download").textContent=button;$("download").style.background=color;
+$("download").addEventListener("click",()=>{
+const [y,m,d]=date.split("-"),[sh,sm]=start.split(":"),[eh,em]=end.split(":");
+const esc=s=>String(s).replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");
+const stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
+const lines=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Francisco Avalos Fotografia//Calendario//ES","CALSCALE:GREGORIAN","BEGIN:VEVENT",`UID:${Date.now()}@franciscoavalosfotografia`,`DTSTAMP:${stamp}`,`DTSTART;TZID=America/Mexico_City:${y}${m}${d}T${sh}${sm}00`,`DTEND;TZID=America/Mexico_City:${y}${m}${d}T${eh}${em}00`,`SUMMARY:${esc(name)}`,`DESCRIPTION:${esc(intro)}`,"END:VEVENT","END:VCALENDAR"];
+const blob=new Blob([lines.join("\r\n")+"\r\n"],{type:"text/calendar;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="evento.ics";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);$("gNote").textContent="Archivo descargado. Ábrelo para agregar el evento a tu calendario."
+})}
+if(guest)showGuest();else{
+$("makeLink").addEventListener("click",()=>{
+$("error").textContent="";const name=$("eventName").value.trim(),date=$("eventDate").value,start=$("startTime").value,end=$("endTime").value;
+if(!name||!date||!start||!end){$("error").textContent="Completa el nombre, fecha y horarios.";return}
+if(end<=start){$("error").textContent="La hora final debe ser posterior a la inicial. Si termina después de medianoche, necesitamos ajustar el evento.";return}
+const url=new URL(location.href);url.search="";url.searchParams.set("name",name);url.searchParams.set("date",date);url.searchParams.set("start",start);url.searchParams.set("end",end);url.searchParams.set("button",$("buttonText").value.trim()||"AGREGAR A MI CALENDARIO");url.searchParams.set("intro",$("introText").value.trim());url.searchParams.set("color",$("buttonColor").value);$("generatedUrl").value=url.toString();$("result").style.display="block"
+});
+$("copyLink").addEventListener("click",async()=>{try{await navigator.clipboard.writeText($("generatedUrl").value)}catch(e){$("generatedUrl").select();document.execCommand("copy")} $("copyLink").textContent="¡ENLACE COPIADO!"});
+$("testLink").addEventListener("click",()=>window.open($("generatedUrl").value,"_blank"));
+}
+</script></body></html>
